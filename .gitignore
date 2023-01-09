@@ -106,3 +106,6 @@
 
 # Signal taps
 *.stp
+
+**/devkits/*
+**/lab1_sys/*

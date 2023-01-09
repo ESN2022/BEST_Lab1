@@ -8,7 +8,7 @@ module lab1_sys (
 
 	input		clk_clk;
 	output	[9:0]	leds_external_connection_export;
-	input	[1:0]	push_buttons_external_connection_export;
+	input		push_buttons_external_connection_export;
 	input		reset_reset_n;
 	input	[3:0]	switches_external_connection_export;
 endmodule

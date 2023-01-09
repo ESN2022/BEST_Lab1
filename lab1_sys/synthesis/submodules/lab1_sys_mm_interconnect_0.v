@@ -42,7 +42,10 @@ module lab1_sys_mm_interconnect_0 (
 		input  wire        nios2_gen2_0_debug_mem_slave_waitrequest,       //                                         .waitrequest
 		output wire        nios2_gen2_0_debug_mem_slave_debugaccess,       //                                         .debugaccess
 		output wire [1:0]  PUSH_BUTTONS_s1_address,                        //                          PUSH_BUTTONS_s1.address
+		output wire        PUSH_BUTTONS_s1_write,                          //                                         .write
 		input  wire [31:0] PUSH_BUTTONS_s1_readdata,                       //                                         .readdata
+		output wire [31:0] PUSH_BUTTONS_s1_writedata,                      //                                         .writedata
+		output wire        PUSH_BUTTONS_s1_chipselect,                     //                                         .chipselect
 		output wire [13:0] RAM_s1_address,                                 //                                   RAM_s1.address
 		output wire        RAM_s1_write,                                   //                                         .write
 		input  wire [31:0] RAM_s1_readdata,                                //                                         .readdata
@@ -51,7 +54,10 @@ module lab1_sys_mm_interconnect_0 (
 		output wire        RAM_s1_chipselect,                              //                                         .chipselect
 		output wire        RAM_s1_clken,                                   //                                         .clken
 		output wire [1:0]  SWITCHES_s1_address,                            //                              SWITCHES_s1.address
-		input  wire [31:0] SWITCHES_s1_readdata                            //                                         .readdata
+		output wire        SWITCHES_s1_write,                              //                                         .write
+		input  wire [31:0] SWITCHES_s1_readdata,                           //                                         .readdata
+		output wire [31:0] SWITCHES_s1_writedata,                          //                                         .writedata
+		output wire        SWITCHES_s1_chipselect                          //                                         .chipselect
 	);
 
 	wire         nios2_gen2_0_data_master_translator_avalon_universal_master_0_waitrequest;          // nios2_gen2_0_data_master_agent:av_waitrequest -> nios2_gen2_0_data_master_translator:uav_waitrequest
@@ -830,10 +836,11 @@ module lab1_sys_mm_interconnect_0 (
 		.uav_lock               (push_buttons_s1_agent_m0_lock),                  //                         .lock
 		.uav_debugaccess        (push_buttons_s1_agent_m0_debugaccess),           //                         .debugaccess
 		.av_address             (PUSH_BUTTONS_s1_address),                        //      avalon_anti_slave_0.address
+		.av_write               (PUSH_BUTTONS_s1_write),                          //                         .write
 		.av_readdata            (PUSH_BUTTONS_s1_readdata),                       //                         .readdata
-		.av_write               (),                                               //              (terminated)
+		.av_writedata           (PUSH_BUTTONS_s1_writedata),                      //                         .writedata
+		.av_chipselect          (PUSH_BUTTONS_s1_chipselect),                     //                         .chipselect
 		.av_read                (),                                               //              (terminated)
-		.av_writedata           (),                                               //              (terminated)
 		.av_begintransfer       (),                                               //              (terminated)
 		.av_beginbursttransfer  (),                                               //              (terminated)
 		.av_burstcount          (),                                               //              (terminated)
@@ -842,7 +849,6 @@ module lab1_sys_mm_interconnect_0 (
 		.av_waitrequest         (1'b0),                                           //              (terminated)
 		.av_writebyteenable     (),                                               //              (terminated)
 		.av_lock                (),                                               //              (terminated)
-		.av_chipselect          (),                                               //              (terminated)
 		.av_clken               (),                                               //              (terminated)
 		.uav_clken              (1'b0),                                           //              (terminated)
 		.av_debugaccess         (),                                               //              (terminated)
@@ -958,10 +964,11 @@ module lab1_sys_mm_interconnect_0 (
 		.uav_lock               (switches_s1_agent_m0_lock),                      //                         .lock
 		.uav_debugaccess        (switches_s1_agent_m0_debugaccess),               //                         .debugaccess
 		.av_address             (SWITCHES_s1_address),                            //      avalon_anti_slave_0.address
+		.av_write               (SWITCHES_s1_write),                              //                         .write
 		.av_readdata            (SWITCHES_s1_readdata),                           //                         .readdata
-		.av_write               (),                                               //              (terminated)
+		.av_writedata           (SWITCHES_s1_writedata),                          //                         .writedata
+		.av_chipselect          (SWITCHES_s1_chipselect),                         //                         .chipselect
 		.av_read                (),                                               //              (terminated)
-		.av_writedata           (),                                               //              (terminated)
 		.av_begintransfer       (),                                               //              (terminated)
 		.av_beginbursttransfer  (),                                               //              (terminated)
 		.av_burstcount          (),                                               //              (terminated)
@@ -970,7 +977,6 @@ module lab1_sys_mm_interconnect_0 (
 		.av_waitrequest         (1'b0),                                           //              (terminated)
 		.av_writebyteenable     (),                                               //              (terminated)
 		.av_lock                (),                                               //              (terminated)
-		.av_chipselect          (),                                               //              (terminated)
 		.av_clken               (),                                               //              (terminated)
 		.uav_clken              (1'b0),                                           //              (terminated)
 		.av_debugaccess         (),                                               //              (terminated)

@@ -2,7 +2,7 @@
 		port (
 			clk_clk                                 : in  std_logic                    := 'X';             -- clk
 			leds_external_connection_export         : out std_logic_vector(9 downto 0);                    -- export
-			push_buttons_external_connection_export : in  std_logic_vector(1 downto 0) := (others => 'X'); -- export
+			push_buttons_external_connection_export : in  std_logic                    := 'X';             -- export
 			reset_reset_n                           : in  std_logic                    := 'X';             -- reset_n
 			switches_external_connection_export     : in  std_logic_vector(3 downto 0) := (others => 'X')  -- export
 		);

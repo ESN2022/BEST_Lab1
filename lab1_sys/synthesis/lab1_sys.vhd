@@ -10,7 +10,7 @@ entity lab1_sys is
 	port (
 		clk_clk                                 : in  std_logic                    := '0';             --                              clk.clk
 		leds_external_connection_export         : out std_logic_vector(9 downto 0);                    --         leds_external_connection.export
-		push_buttons_external_connection_export : in  std_logic_vector(1 downto 0) := (others => '0'); -- push_buttons_external_connection.export
+		push_buttons_external_connection_export : in  std_logic                    := '0';             -- push_buttons_external_connection.export
 		reset_reset_n                           : in  std_logic                    := '0';             --                            reset.reset_n
 		switches_external_connection_export     : in  std_logic_vector(3 downto 0) := (others => '0')  --     switches_external_connection.export
 	);
@@ -32,11 +32,15 @@ architecture rtl of lab1_sys is
 
 	component lab1_sys_PUSH_BUTTONS is
 		port (
-			clk      : in  std_logic                     := 'X';             -- clk
-			reset_n  : in  std_logic                     := 'X';             -- reset_n
-			address  : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- address
-			readdata : out std_logic_vector(31 downto 0);                    -- readdata
-			in_port  : in  std_logic_vector(1 downto 0)  := (others => 'X')  -- export
+			clk        : in  std_logic                     := 'X';             -- clk
+			reset_n    : in  std_logic                     := 'X';             -- reset_n
+			address    : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- address
+			write_n    : in  std_logic                     := 'X';             -- write_n
+			writedata  : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			chipselect : in  std_logic                     := 'X';             -- chipselect
+			readdata   : out std_logic_vector(31 downto 0);                    -- readdata
+			in_port    : in  std_logic                     := 'X';             -- export
+			irq        : out std_logic                                         -- irq
 		);
 	end component lab1_sys_PUSH_BUTTONS;
 
@@ -58,11 +62,15 @@ architecture rtl of lab1_sys is
 
 	component lab1_sys_SWITCHES is
 		port (
-			clk      : in  std_logic                     := 'X';             -- clk
-			reset_n  : in  std_logic                     := 'X';             -- reset_n
-			address  : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- address
-			readdata : out std_logic_vector(31 downto 0);                    -- readdata
-			in_port  : in  std_logic_vector(3 downto 0)  := (others => 'X')  -- export
+			clk        : in  std_logic                     := 'X';             -- clk
+			reset_n    : in  std_logic                     := 'X';             -- reset_n
+			address    : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- address
+			write_n    : in  std_logic                     := 'X';             -- write_n
+			writedata  : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			chipselect : in  std_logic                     := 'X';             -- chipselect
+			readdata   : out std_logic_vector(31 downto 0);                    -- readdata
+			in_port    : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- export
+			irq        : out std_logic                                         -- irq
 		);
 	end component lab1_sys_SWITCHES;
 
@@ -149,7 +157,10 @@ architecture rtl of lab1_sys is
 			nios2_gen2_0_debug_mem_slave_waitrequest       : in  std_logic                     := 'X';             -- waitrequest
 			nios2_gen2_0_debug_mem_slave_debugaccess       : out std_logic;                                        -- debugaccess
 			PUSH_BUTTONS_s1_address                        : out std_logic_vector(1 downto 0);                     -- address
+			PUSH_BUTTONS_s1_write                          : out std_logic;                                        -- write
 			PUSH_BUTTONS_s1_readdata                       : in  std_logic_vector(31 downto 0) := (others => 'X'); -- readdata
+			PUSH_BUTTONS_s1_writedata                      : out std_logic_vector(31 downto 0);                    -- writedata
+			PUSH_BUTTONS_s1_chipselect                     : out std_logic;                                        -- chipselect
 			RAM_s1_address                                 : out std_logic_vector(13 downto 0);                    -- address
 			RAM_s1_write                                   : out std_logic;                                        -- write
 			RAM_s1_readdata                                : in  std_logic_vector(31 downto 0) := (others => 'X'); -- readdata
@@ -158,7 +169,10 @@ architecture rtl of lab1_sys is
 			RAM_s1_chipselect                              : out std_logic;                                        -- chipselect
 			RAM_s1_clken                                   : out std_logic;                                        -- clken
 			SWITCHES_s1_address                            : out std_logic_vector(1 downto 0);                     -- address
-			SWITCHES_s1_readdata                           : in  std_logic_vector(31 downto 0) := (others => 'X')  -- readdata
+			SWITCHES_s1_write                              : out std_logic;                                        -- write
+			SWITCHES_s1_readdata                           : in  std_logic_vector(31 downto 0) := (others => 'X'); -- readdata
+			SWITCHES_s1_writedata                          : out std_logic_vector(31 downto 0);                    -- writedata
+			SWITCHES_s1_chipselect                         : out std_logic                                         -- chipselect
 		);
 	end component lab1_sys_mm_interconnect_0;
 
@@ -167,6 +181,8 @@ architecture rtl of lab1_sys is
 			clk           : in  std_logic                     := 'X'; -- clk
 			reset         : in  std_logic                     := 'X'; -- reset
 			receiver0_irq : in  std_logic                     := 'X'; -- irq
+			receiver1_irq : in  std_logic                     := 'X'; -- irq
+			receiver2_irq : in  std_logic                     := 'X'; -- irq
 			sender_irq    : out std_logic_vector(31 downto 0)         -- irq
 		);
 	end component lab1_sys_irq_mapper;
@@ -271,23 +287,33 @@ architecture rtl of lab1_sys is
 	signal mm_interconnect_0_ram_s1_write                                  : std_logic;                     -- mm_interconnect_0:RAM_s1_write -> RAM:write
 	signal mm_interconnect_0_ram_s1_writedata                              : std_logic_vector(31 downto 0); -- mm_interconnect_0:RAM_s1_writedata -> RAM:writedata
 	signal mm_interconnect_0_ram_s1_clken                                  : std_logic;                     -- mm_interconnect_0:RAM_s1_clken -> RAM:clken
+	signal mm_interconnect_0_push_buttons_s1_chipselect                    : std_logic;                     -- mm_interconnect_0:PUSH_BUTTONS_s1_chipselect -> PUSH_BUTTONS:chipselect
 	signal mm_interconnect_0_push_buttons_s1_readdata                      : std_logic_vector(31 downto 0); -- PUSH_BUTTONS:readdata -> mm_interconnect_0:PUSH_BUTTONS_s1_readdata
 	signal mm_interconnect_0_push_buttons_s1_address                       : std_logic_vector(1 downto 0);  -- mm_interconnect_0:PUSH_BUTTONS_s1_address -> PUSH_BUTTONS:address
+	signal mm_interconnect_0_push_buttons_s1_write                         : std_logic;                     -- mm_interconnect_0:PUSH_BUTTONS_s1_write -> mm_interconnect_0_push_buttons_s1_write:in
+	signal mm_interconnect_0_push_buttons_s1_writedata                     : std_logic_vector(31 downto 0); -- mm_interconnect_0:PUSH_BUTTONS_s1_writedata -> PUSH_BUTTONS:writedata
 	signal mm_interconnect_0_leds_s1_chipselect                            : std_logic;                     -- mm_interconnect_0:LEDS_s1_chipselect -> LEDS:chipselect
 	signal mm_interconnect_0_leds_s1_readdata                              : std_logic_vector(31 downto 0); -- LEDS:readdata -> mm_interconnect_0:LEDS_s1_readdata
 	signal mm_interconnect_0_leds_s1_address                               : std_logic_vector(1 downto 0);  -- mm_interconnect_0:LEDS_s1_address -> LEDS:address
 	signal mm_interconnect_0_leds_s1_write                                 : std_logic;                     -- mm_interconnect_0:LEDS_s1_write -> mm_interconnect_0_leds_s1_write:in
 	signal mm_interconnect_0_leds_s1_writedata                             : std_logic_vector(31 downto 0); -- mm_interconnect_0:LEDS_s1_writedata -> LEDS:writedata
+	signal mm_interconnect_0_switches_s1_chipselect                        : std_logic;                     -- mm_interconnect_0:SWITCHES_s1_chipselect -> SWITCHES:chipselect
 	signal mm_interconnect_0_switches_s1_readdata                          : std_logic_vector(31 downto 0); -- SWITCHES:readdata -> mm_interconnect_0:SWITCHES_s1_readdata
 	signal mm_interconnect_0_switches_s1_address                           : std_logic_vector(1 downto 0);  -- mm_interconnect_0:SWITCHES_s1_address -> SWITCHES:address
+	signal mm_interconnect_0_switches_s1_write                             : std_logic;                     -- mm_interconnect_0:SWITCHES_s1_write -> mm_interconnect_0_switches_s1_write:in
+	signal mm_interconnect_0_switches_s1_writedata                         : std_logic_vector(31 downto 0); -- mm_interconnect_0:SWITCHES_s1_writedata -> SWITCHES:writedata
 	signal irq_mapper_receiver0_irq                                        : std_logic;                     -- jtag_uart_0:av_irq -> irq_mapper:receiver0_irq
+	signal irq_mapper_receiver1_irq                                        : std_logic;                     -- PUSH_BUTTONS:irq -> irq_mapper:receiver1_irq
+	signal irq_mapper_receiver2_irq                                        : std_logic;                     -- SWITCHES:irq -> irq_mapper:receiver2_irq
 	signal nios2_gen2_0_irq_irq                                            : std_logic_vector(31 downto 0); -- irq_mapper:sender_irq -> nios2_gen2_0:irq
 	signal rst_controller_reset_out_reset                                  : std_logic;                     -- rst_controller:reset_out -> [RAM:reset, irq_mapper:reset, mm_interconnect_0:nios2_gen2_0_reset_reset_bridge_in_reset_reset, rst_controller_reset_out_reset:in, rst_translator:in_reset]
 	signal rst_controller_reset_out_reset_req                              : std_logic;                     -- rst_controller:reset_req -> [RAM:reset_req, nios2_gen2_0:reset_req, rst_translator:reset_req_in]
 	signal reset_reset_n_ports_inv                                         : std_logic;                     -- reset_reset_n:inv -> rst_controller:reset_in0
 	signal mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_read_ports_inv  : std_logic;                     -- mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_read:inv -> jtag_uart_0:av_read_n
 	signal mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_write_ports_inv : std_logic;                     -- mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_write:inv -> jtag_uart_0:av_write_n
+	signal mm_interconnect_0_push_buttons_s1_write_ports_inv               : std_logic;                     -- mm_interconnect_0_push_buttons_s1_write:inv -> PUSH_BUTTONS:write_n
 	signal mm_interconnect_0_leds_s1_write_ports_inv                       : std_logic;                     -- mm_interconnect_0_leds_s1_write:inv -> LEDS:write_n
+	signal mm_interconnect_0_switches_s1_write_ports_inv                   : std_logic;                     -- mm_interconnect_0_switches_s1_write:inv -> SWITCHES:write_n
 	signal rst_controller_reset_out_reset_ports_inv                        : std_logic;                     -- rst_controller_reset_out_reset:inv -> [LEDS:reset_n, PUSH_BUTTONS:reset_n, SWITCHES:reset_n, jtag_uart_0:rst_n, nios2_gen2_0:reset_n]
 
 begin
@@ -306,11 +332,15 @@ begin
 
 	push_buttons : component lab1_sys_PUSH_BUTTONS
 		port map (
-			clk      => clk_clk,                                    --                 clk.clk
-			reset_n  => rst_controller_reset_out_reset_ports_inv,   --               reset.reset_n
-			address  => mm_interconnect_0_push_buttons_s1_address,  --                  s1.address
-			readdata => mm_interconnect_0_push_buttons_s1_readdata, --                    .readdata
-			in_port  => push_buttons_external_connection_export     -- external_connection.export
+			clk        => clk_clk,                                           --                 clk.clk
+			reset_n    => rst_controller_reset_out_reset_ports_inv,          --               reset.reset_n
+			address    => mm_interconnect_0_push_buttons_s1_address,         --                  s1.address
+			write_n    => mm_interconnect_0_push_buttons_s1_write_ports_inv, --                    .write_n
+			writedata  => mm_interconnect_0_push_buttons_s1_writedata,       --                    .writedata
+			chipselect => mm_interconnect_0_push_buttons_s1_chipselect,      --                    .chipselect
+			readdata   => mm_interconnect_0_push_buttons_s1_readdata,        --                    .readdata
+			in_port    => push_buttons_external_connection_export,           -- external_connection.export
+			irq        => irq_mapper_receiver1_irq                           --                 irq.irq
 		);
 
 	ram : component lab1_sys_RAM
@@ -330,11 +360,15 @@ begin
 
 	switches : component lab1_sys_SWITCHES
 		port map (
-			clk      => clk_clk,                                  --                 clk.clk
-			reset_n  => rst_controller_reset_out_reset_ports_inv, --               reset.reset_n
-			address  => mm_interconnect_0_switches_s1_address,    --                  s1.address
-			readdata => mm_interconnect_0_switches_s1_readdata,   --                    .readdata
-			in_port  => switches_external_connection_export       -- external_connection.export
+			clk        => clk_clk,                                       --                 clk.clk
+			reset_n    => rst_controller_reset_out_reset_ports_inv,      --               reset.reset_n
+			address    => mm_interconnect_0_switches_s1_address,         --                  s1.address
+			write_n    => mm_interconnect_0_switches_s1_write_ports_inv, --                    .write_n
+			writedata  => mm_interconnect_0_switches_s1_writedata,       --                    .writedata
+			chipselect => mm_interconnect_0_switches_s1_chipselect,      --                    .chipselect
+			readdata   => mm_interconnect_0_switches_s1_readdata,        --                    .readdata
+			in_port    => switches_external_connection_export,           -- external_connection.export
+			irq        => irq_mapper_receiver2_irq                       --                 irq.irq
 		);
 
 	jtag_uart_0 : component lab1_sys_jtag_uart_0
@@ -418,7 +452,10 @@ begin
 			nios2_gen2_0_debug_mem_slave_waitrequest       => mm_interconnect_0_nios2_gen2_0_debug_mem_slave_waitrequest,  --                                         .waitrequest
 			nios2_gen2_0_debug_mem_slave_debugaccess       => mm_interconnect_0_nios2_gen2_0_debug_mem_slave_debugaccess,  --                                         .debugaccess
 			PUSH_BUTTONS_s1_address                        => mm_interconnect_0_push_buttons_s1_address,                   --                          PUSH_BUTTONS_s1.address
+			PUSH_BUTTONS_s1_write                          => mm_interconnect_0_push_buttons_s1_write,                     --                                         .write
 			PUSH_BUTTONS_s1_readdata                       => mm_interconnect_0_push_buttons_s1_readdata,                  --                                         .readdata
+			PUSH_BUTTONS_s1_writedata                      => mm_interconnect_0_push_buttons_s1_writedata,                 --                                         .writedata
+			PUSH_BUTTONS_s1_chipselect                     => mm_interconnect_0_push_buttons_s1_chipselect,                --                                         .chipselect
 			RAM_s1_address                                 => mm_interconnect_0_ram_s1_address,                            --                                   RAM_s1.address
 			RAM_s1_write                                   => mm_interconnect_0_ram_s1_write,                              --                                         .write
 			RAM_s1_readdata                                => mm_interconnect_0_ram_s1_readdata,                           --                                         .readdata
@@ -427,7 +464,10 @@ begin
 			RAM_s1_chipselect                              => mm_interconnect_0_ram_s1_chipselect,                         --                                         .chipselect
 			RAM_s1_clken                                   => mm_interconnect_0_ram_s1_clken,                              --                                         .clken
 			SWITCHES_s1_address                            => mm_interconnect_0_switches_s1_address,                       --                              SWITCHES_s1.address
-			SWITCHES_s1_readdata                           => mm_interconnect_0_switches_s1_readdata                       --                                         .readdata
+			SWITCHES_s1_write                              => mm_interconnect_0_switches_s1_write,                         --                                         .write
+			SWITCHES_s1_readdata                           => mm_interconnect_0_switches_s1_readdata,                      --                                         .readdata
+			SWITCHES_s1_writedata                          => mm_interconnect_0_switches_s1_writedata,                     --                                         .writedata
+			SWITCHES_s1_chipselect                         => mm_interconnect_0_switches_s1_chipselect                     --                                         .chipselect
 		);
 
 	irq_mapper : component lab1_sys_irq_mapper
@@ -435,6 +475,8 @@ begin
 			clk           => clk_clk,                        --       clk.clk
 			reset         => rst_controller_reset_out_reset, -- clk_reset.reset
 			receiver0_irq => irq_mapper_receiver0_irq,       -- receiver0.irq
+			receiver1_irq => irq_mapper_receiver1_irq,       -- receiver1.irq
+			receiver2_irq => irq_mapper_receiver2_irq,       -- receiver2.irq
 			sender_irq    => nios2_gen2_0_irq_irq            --    sender.irq
 		);
 
@@ -509,7 +551,11 @@ begin
 
 	mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_write_ports_inv <= not mm_interconnect_0_jtag_uart_0_avalon_jtag_slave_write;
 
+	mm_interconnect_0_push_buttons_s1_write_ports_inv <= not mm_interconnect_0_push_buttons_s1_write;
+
 	mm_interconnect_0_leds_s1_write_ports_inv <= not mm_interconnect_0_leds_s1_write;
+
+	mm_interconnect_0_switches_s1_write_ports_inv <= not mm_interconnect_0_switches_s1_write;
 
 	rst_controller_reset_out_reset_ports_inv <= not rst_controller_reset_out_reset;
 

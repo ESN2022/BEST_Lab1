@@ -68,7 +68,7 @@ static void irqhandler_push_button(void* context){
 static void irqhandler_switches(void* context){
 	int switch_value;
 	//GESTION DE LA VITESSE CHENILLARD
-	alt_printf("HELLO");
+	//alt_printf("HELLO");
 	switch_value = IORD_ALTERA_AVALON_PIO_DATA(SWITCHES_BASE);
 	if (switch_value == 0){
 		time = 25000;

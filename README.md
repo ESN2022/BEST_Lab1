@@ -6,6 +6,10 @@
 
 ## B. System architecture
 
+### Design Choice
+
+![image](https://user-images.githubusercontent.com/121948093/211777124-d5f475dd-e400-49b3-bfbe-43e9372cb262.png)
+
 ### Flow Hardware
 
 <p align="justify"> La première des choses à faire est de crée un projet vierge sous Quartus. Ensuite, j’ouvre Platform Designer et j’ajoute tous les blocs IP dont j’ai besoin pour créer l’application. Les différents blocs IP sont les suivants : </p>
